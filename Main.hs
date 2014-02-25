@@ -17,15 +17,52 @@ import System.Random
 import qualified System.Random.Shuffle
 
 import Test.QuickCheck
+import Test.QuickCheck.Gen
 import Test.QuickCheck.All
 
+import Criterion.Main
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Test driver
-main :: IO (Bool)
-main = $quickCheckAll
+main :: IO ()
+main = defaultMain
+       [ bgroup "divide and conquer"
+         [ bench "n = 10" $ nf closestPairDivideAndConquer (pointsGen' 10)
+         , bench "n = 100" $ nf closestPairDivideAndConquer (pointsGen' 100)
+         , bench "n = 1000" $ nf closestPairDivideAndConquer (pointsGen' 1000)
+         , bench "n = 10000" $ nf closestPairDivideAndConquer (pointsGen' 10000)
+         , bench "n = 100000" $ nf closestPairDivideAndConquer (pointsGen' 100000)
+         -- , bench "1000000" $ nf closestPairDivideAndConquer (pointsGen' 1000000)
+         ]
+       ,
+         bgroup "hashing"
+         [ bench "n = 10" $ nf closestPairHashing' (pointsGen' 10)
+         , bench "n = 100" $ nf closestPairHashing' (pointsGen' 100)
+         , bench "n = 1000" $ nf closestPairHashing' (pointsGen' 1000)
+         , bench "n = 10000" $ nf closestPairHashing' (pointsGen' 10000)
+         , bench "n = 100000" $ nf closestPairHashing' (pointsGen' 100000)
+         , bench "n = 1000000" $ nf closestPairHashing' (pointsGen' 1000000)
+         ] ]
+  where pointsGen' n = take n $ pointsGen 0
+        gen = mkStdGen 0
+        closestPairHashing' = closestPairHashing gen
 
 
+
+pointsGen        :: Int -> [Point]
+pointsGen seed = unGen arbitrary (mkStdGen seed) 99999999
+
+-- getRandomArg           :: Gen a -> IO [a]
+-- getRandomArg (MkGen m) =
+--   do rnd <- newStdGen
+--      let rnds rnd = rnd1 : rnds rnd2 where (rnd1, rnd2) = split rnd
+--      return [(m r n) | (r,n) <- rnds rnd `zip` [0,2..20] ]
+
+
+test :: IO (Bool)
+test = $quickCheckAll
+
+-------------------------------------------------------------------------------
 
 type Point = (Double, Double)
 type Distance = Double
@@ -58,7 +95,7 @@ closestPairBruteForce ps = minimumBy ord (pairs ps)
           | dist p1 p2 == dist p3 p4 = EQ
           | otherwise                = GT
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Property tests
 
 -- prototype
@@ -72,7 +109,7 @@ prop_hashing   :: Int -> [Point] -> Property
 prop_hashing s = (f_closest . closestPairHashing) $ mkStdGen s
 
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Problem 1 (a)
 
 closestPairDivideAndConquer     :: [Point] -> (Point, Point)
