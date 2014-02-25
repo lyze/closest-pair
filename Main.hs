@@ -19,7 +19,6 @@ import qualified System.Random.Shuffle
 import Test.QuickCheck
 import Test.QuickCheck.All
 
-import Debug.Trace
 
 --------------------------------------------------------------------------------
 -- Test driver
@@ -152,14 +151,14 @@ sideLength                          :: (Point, Point) -> Double
 sideLength ((llx, _), (urx, _)) = abs $ urx - llx
 
 getSubsquare                                   :: (Point, Point) -> Double -> Point -> SubsquareId
-getSubsquare ((llx, lly), (urx, ury)) d (x, y) =
+getSubsquare ((llx, lly), (_, _)) d (x, y) =
   let s  = d / 2
       x' = (x - llx)
       y' = (y - lly)
   in  (floor $ x' / s, floor $ y' / s)
 
 closeSubsquares        :: (Point, Point) -> Double -> Point -> [SubsquareId]
-closeSubsquares sq d p = let (x, y) = trace ("subsq id = " ++ (show $ getSubsquare sq d p)) $ getSubsquare sq d p
+closeSubsquares sq d p = let (x, y) = getSubsquare sq d p
                              n = ceiling $ (sideLength sq) * 2 / d
                          in  [ (x', y') |
                                let ds = [-2..2],
@@ -168,7 +167,7 @@ closeSubsquares sq d p = let (x, y) = trace ("subsq id = " ++ (show $ getSubsqua
                                x' >= 0, x' < n, y' >= 0, y' < n ]
 
 neighbors             :: Dictionary s -> (Point, Point) -> Double -> Point -> ST s [Point]
-neighbors dict sq d p = do l <- mapM (H.lookup dict) $ trace ("closeSubsquares = " ++ (show $ closeSubsquares sq d p)) $ closeSubsquares sq d p
+neighbors dict sq d p = do l <- mapM (H.lookup dict) $ closeSubsquares sq d p
                            return $ catMaybes l
 
 findCloser     :: Double -> Point -> [Point] -> Maybe (Point, Double)
@@ -212,13 +211,12 @@ closestPairHashing gen points@(_:_:_) =
       (box, num)         = getBoundingSquareN points
   in  runST $ do
     dict <- makeDictionary num
-    closestPairHashing' box num (d0) (p1, p2) (dict) [] $ traceShow shuffled shuffled
+    closestPairHashing' box num (d0) (p1, p2) (dict) [] shuffled
 
       where closestPairHashing' _  _ _ best _    _    []     = return best
             closestPairHashing' sq n d best dict seen (p:ps) =
               do closePoints <- neighbors dict sq d p
-                 dictList <- H.toList dict
-                 case findCloser d p (trace ("closePoints = " ++ (show $ closePoints) ++ "\ndictList = " ++ (show dictList)) closePoints) of
+                 case findCloser d p closePoints of
                    Just (s, d') ->
                      let updated = map (\q -> (getSubsquare sq d' q, q)) $ p : seen in
                      do
@@ -226,5 +224,5 @@ closestPairHashing gen points@(_:_:_) =
                        closestPairHashing' sq n d' (p, s) dict' (p : seen) ps
                    Nothing ->
                      do
-                       trace "nothing" $ insertDict dict (getSubsquare sq d p) p
+                       insertDict dict (getSubsquare sq d p) p
                        closestPairHashing' sq n d best (dict) (p : seen) ps
