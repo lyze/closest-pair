@@ -1,5 +1,9 @@
 -- CIS 399, Homework #1
 -- David Xu
+--
+-- A comparison of two closest-pair algorithms: The divide-and-conquer approach
+-- has a runtime that is O(n log n). The dictionary-based algorithm has a time
+-- complexity of O(n).
 
 {-# OPTIONS -Wall -fwarn-tabs -fno-warn-type-defaults -fno-warn-orphans #-}
 {-# LANGUAGE TemplateHaskell, FlexibleInstances, ScopedTypeVariables #-}
